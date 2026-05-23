@@ -1,65 +1,76 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 text-center">
+        <div className="max-w-3xl">
+          <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+            Secure Authentication Platform
+          </span>
+
+          <h1 className="mt-8 text-5xl font-extrabold leading-tight md:text-7xl">
+            SecureExam Portal
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="mt-6 text-lg leading-8 text-slate-300 md:text-xl">
+            A secure online examination system built with Next.js,
+            authentication, authorization, OTP verification, JWT security,
+            protected routes, and role-based access control.
           </p>
+
+          <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
+            <Link
+              href="/login"
+              className="rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white transition hover:bg-blue-700"
+            >
+              Login
+            </Link>
+
+            <Link
+              href="/register"
+              className="rounded-xl border border-slate-700 px-8 py-4 text-lg font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-900"
+            >
+              Create Account
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="mt-24 grid w-full max-w-6xl gap-6 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-left">
+            <h3 className="text-xl font-bold text-white">
+              Authentication
+            </h3>
+
+            <p className="mt-4 text-slate-400">
+              Secure login and registration system with hashed passwords and
+              JWT-based authentication.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-left">
+            <h3 className="text-xl font-bold text-white">
+              OTP Verification
+            </h3>
+
+            <p className="mt-4 text-slate-400">
+              Real email verification using one-time passwords for account
+              protection and identity confirmation.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-left">
+            <h3 className="text-xl font-bold text-white">
+              Authorization
+            </h3>
+
+            <p className="mt-4 text-slate-400">
+              Role-based access control for Admin and User dashboards with
+              protected routes and permissions.
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }

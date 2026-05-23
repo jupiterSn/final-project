@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { hashPassword } from "@/lib/auth";
-import { users } from "@/lib/db";
-import type { RegisterRequest } from "@/types/auth";
-import type { User } from "@/types/user";
+import { generateOtp, hashPassword } from "@/lib/auth";
+import { sendOtpEmail } from "@/lib/mail";
+import { users } from "@/lib/users";
 
 export async function POST(request: Request) {
   try {
-    const body: RegisterRequest = await request.json();
+    const { name, email, password } = await request.json();
 
-    const { name, email, password, role } = body;
-
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { message: "All fields are required" },
-        { status: 400 }
-      );
-    }
-
-    if (role !== "admin" && role !== "user") {
-      return NextResponse.json(
-        { message: "Invalid role" },
+        { message: "Name, email, and password are required" },
         { status: 400 }
       );
     }
@@ -29,34 +19,33 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "Email already registered" },
+        { message: "Email is already registered" },
         { status: 409 }
       );
     }
 
     const hashedPassword = await hashPassword(password);
+    const otp = generateOtp();
 
-    const newUser: User = {
-      id: crypto.randomUUID(),
+    const newUser = {
+      id: Date.now().toString(),
       name,
       email,
       password: hashedPassword,
-      role,
-      createdAt: new Date().toISOString(),
+      role: "user" as const,
+      isVerified: false,
+      otp,
+      otpExpiresAt: Date.now() + 5 * 60 * 1000,
     };
 
     users.push(newUser);
 
+    await sendOtpEmail(email, otp);
+
     return NextResponse.json(
       {
-        message: "User registered successfully",
-        user: {
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          createdAt: newUser.createdAt,
-        },
+        message: "Registration successful. OTP sent to email.",
+        email,
       },
       { status: 201 }
     );
@@ -64,7 +53,7 @@ export async function POST(request: Request) {
     console.error("Register error:", error);
 
     return NextResponse.json(
-      { message: "Something went wrong during registration" },
+      { message: "Registration failed" },
       { status: 500 }
     );
   }

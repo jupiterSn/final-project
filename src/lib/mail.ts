@@ -17,15 +17,21 @@ export async function sendOtpEmail(email: string, code: string) {
   });
 
   await transporter.sendMail({
-    from: `"SecureCloud" <${EMAIL_USER}>`,
+    from: `"SecureExam" <${EMAIL_USER}>`,
     to: email,
-    subject: "Your SecureCloud OTP Code",
+    subject: "Your SecureExam OTP Code",
     html: `
       <div style="font-family: Arial, sans-serif;">
-        <h2>SecureCloud Verification</h2>
+        <h2>SecureExam Verification</h2>
         <p>Your OTP code is:</p>
-        <h1 style="letter-spacing: 4px;">${code}</h1>
-        <p>This code expires in 5 minutes.</p>
+
+        <h1 style="letter-spacing: 4px;">
+          ${code}
+        </h1>
+
+        <p>
+          This code expires in 5 minutes.
+        </p>
       </div>
     `,
   });
