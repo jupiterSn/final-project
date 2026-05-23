@@ -1,7 +1,10 @@
+import dns from "node:dns";
 import nodemailer from "nodemailer";
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
+
+dns.setDefaultResultOrder("ipv4first");
 
 export function isEmailConfigured() {
   return Boolean(EMAIL_USER && EMAIL_PASS);
@@ -15,7 +18,10 @@ export async function sendOtpEmail(email: string, code: string) {
   }
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASS,
@@ -24,23 +30,23 @@ export async function sendOtpEmail(email: string, code: string) {
 
   try {
     await transporter.sendMail({
-    from: `"SecureExam" <${EMAIL_USER}>`,
-    to: email,
-    subject: "Your SecureExam OTP Code",
-    html: `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>SecureExam Verification</h2>
-        <p>Your OTP code is:</p>
+      from: `"SecureExam" <${EMAIL_USER}>`,
+      to: email,
+      subject: "Your SecureExam OTP Code",
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>SecureExam Verification</h2>
+          <p>Your OTP code is:</p>
 
-        <h1 style="letter-spacing: 4px;">
-          ${code}
-        </h1>
+          <h1 style="letter-spacing: 4px;">
+            ${code}
+          </h1>
 
-        <p>
-          This code expires in 5 minutes.
-        </p>
-      </div>
-    `,
+          <p>
+            This code expires in 5 minutes.
+          </p>
+        </div>
+      `,
     });
   } catch (error) {
     console.error("OTP email send failed:", error);
