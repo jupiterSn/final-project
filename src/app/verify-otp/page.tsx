@@ -7,7 +7,11 @@ import { useState } from "react";
 export default function VerifyOtpPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (typeof window === "undefined") return "";
+
+    return localStorage.getItem("otpEmail") || "";
+  });
   const [otp, setOtp] = useState("");
 
   const [error, setError] = useState("");

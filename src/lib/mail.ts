@@ -3,9 +3,15 @@ import nodemailer from "nodemailer";
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
+export function isEmailConfigured() {
+  return Boolean(EMAIL_USER && EMAIL_PASS);
+}
+
 export async function sendOtpEmail(email: string, code: string) {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    throw new Error("Email environment variables are missing");
+  if (!isEmailConfigured()) {
+    throw new Error(
+      "Email is not configured. Add EMAIL_USER and EMAIL_PASS to .env.local, then restart the dev server."
+    );
   }
 
   const transporter = nodemailer.createTransport({
@@ -16,7 +22,8 @@ export async function sendOtpEmail(email: string, code: string) {
     },
   });
 
-  await transporter.sendMail({
+  try {
+    await transporter.sendMail({
     from: `"SecureExam" <${EMAIL_USER}>`,
     to: email,
     subject: "Your SecureExam OTP Code",
@@ -34,5 +41,11 @@ export async function sendOtpEmail(email: string, code: string) {
         </p>
       </div>
     `,
-  });
+    });
+  } catch (error) {
+    console.error("OTP email send failed:", error);
+    throw new Error(
+      "Could not send OTP email. Check that EMAIL_USER is a Gmail address and EMAIL_PASS is a valid Gmail app password."
+    );
+  }
 }

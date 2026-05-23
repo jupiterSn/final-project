@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import Turnstile from "@/components/Turnstile";
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -13,6 +15,7 @@ export default function RegisterPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +26,12 @@ export default function RegisterPage() {
 
     setError("");
     setSuccess("");
+
+    if (!turnstileToken) {
+      setError("Please complete the Cloudflare verification first.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -35,6 +44,7 @@ export default function RegisterPage() {
           name,
           email,
           password,
+          turnstileToken,
         }),
       });
 
@@ -46,7 +56,7 @@ export default function RegisterPage() {
 
       setSuccess("OTP code sent to your email.");
 
-      localStorage.setItem("otp_email", email);
+      localStorage.setItem("otpEmail", email);
 
       setTimeout(() => {
         router.push("/verify-otp");
@@ -141,9 +151,14 @@ export default function RegisterPage() {
             />
           </div>
 
+          <Turnstile
+            onVerify={setTurnstileToken}
+            onExpire={() => setTurnstileToken("")}
+          />
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
             className="w-full rounded-xl bg-blue-600 px-4 py-3 text-lg font-semibold transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
           >
             {loading
