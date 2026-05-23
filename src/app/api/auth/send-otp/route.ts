@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { otpRecords, users } from "@/lib/db";
+import { sendOtpEmail } from "@/lib/mail";
 import { generateOtp, getOtpExpiry } from "@/lib/otp";
 
 export async function POST(request: Request) {
@@ -14,7 +15,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser = users.find((user) => user.email === email);
+    const existingUser = users.find(
+      (user) => user.email === email
+    );
 
     if (!existingUser) {
       return NextResponse.json(
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
     }
 
     const code = generateOtp();
+
     const expiresAt = getOtpExpiry(5);
 
     const oldOtpIndex = otpRecords.findIndex(
@@ -40,12 +44,11 @@ export async function POST(request: Request) {
       expiresAt,
     });
 
-    console.log(`OTP for ${email}: ${code}`);
+    await sendOtpEmail(email, code);
 
     return NextResponse.json(
       {
-        message: "OTP sent successfully",
-        note: "For now, check the terminal console for the OTP code.",
+        message: "OTP sent successfully. Please check your email.",
       },
       { status: 200 }
     );
@@ -53,7 +56,9 @@ export async function POST(request: Request) {
     console.error("Send OTP error:", error);
 
     return NextResponse.json(
-      { message: "Something went wrong while sending OTP" },
+      {
+        message: "Something went wrong while sending OTP",
+      },
       { status: 500 }
     );
   }
