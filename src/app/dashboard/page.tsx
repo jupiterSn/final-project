@@ -1,301 +1,227 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-type Role = "admin" | "user";
-
-type DocumentStatus = "Pending" | "Approved" | "Rejected";
-
-type DocumentItem = {
-  id: number;
-  title: string;
-  owner: string;
-  assignedTo: string;
-  status: DocumentStatus;
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
 };
 
-const STORAGE_KEY = "securecloud_documents";
+type Exam = {
+  id: number;
+  title: string;
+  subject: string;
+  duration: string;
+};
 
-const initialDocuments: DocumentItem[] = [
+const initialExams: Exam[] = [
   {
     id: 1,
-    title: "Cloud Security Report",
-    owner: "Admin",
-    assignedTo: "user@example.com",
-    status: "Pending",
+    title: "Web Security Basics",
+    subject: "Cybersecurity",
+    duration: "30 minutes",
   },
   {
     id: 2,
-    title: "JWT Authentication Notes",
-    owner: "Admin",
-    assignedTo: "user@example.com",
-    status: "Approved",
+    title: "Authentication and Authorization",
+    subject: "Web Development",
+    duration: "45 minutes",
   },
 ];
 
-function getStoredDocuments(): DocumentItem[] {
-  if (typeof window === "undefined") {
-    return initialDocuments;
-  }
-
-  const savedDocuments = localStorage.getItem(STORAGE_KEY);
-
-  if (!savedDocuments) {
-    return initialDocuments;
-  }
-
-  return JSON.parse(savedDocuments) as DocumentItem[];
-}
-
 export default function DashboardPage() {
-  const [role, setRole] = useState<Role>("admin");
-  const [documents, setDocuments] =
-    useState<DocumentItem[]>(getStoredDocuments);
+  const router = useRouter();
 
+  const [user, setUser] = useState<User | null>(null);
+  const [exams, setExams] = useState<Exam[]>(initialExams);
   const [title, setTitle] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
-  const [status, setStatus] = useState<DocumentStatus>("Pending");
+  const [subject, setSubject] = useState("");
+  const [duration, setDuration] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
-  }, [documents]);
+    async function loadUser() {
+      const response = await fetch("/api/auth/me");
 
-  const visibleDocuments = useMemo(() => {
-    if (role === "admin") return documents;
+      if (!response.ok) {
+        router.push("/login");
+        return;
+      }
 
-    return documents.filter(
-      (document) => document.assignedTo === "user@example.com"
-    );
-  }, [documents, role]);
+      const data = await response.json();
+      setUser(data.user);
+      setLoading(false);
+    }
+
+    loadUser();
+  }, [router]);
 
   function resetForm() {
     setTitle("");
-    setAssignedTo("");
-    setStatus("Pending");
+    setSubject("");
+    setDuration("");
     setEditingId(null);
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSaveExam(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!title.trim() || !assignedTo.trim()) return;
+    if (!title || !subject || !duration) return;
 
-    if (editingId !== null) {
-      setDocuments((prevDocuments) =>
-        prevDocuments.map((document) =>
-          document.id === editingId
-            ? {
-                ...document,
-                title,
-                assignedTo,
-                status,
-              }
-            : document
+    if (editingId) {
+      setExams((prev) =>
+        prev.map((exam) =>
+          exam.id === editingId ? { ...exam, title, subject, duration } : exam
         )
       );
     } else {
-      const newDocument: DocumentItem = {
-        id: Date.now(),
-        title,
-        owner: "Admin",
-        assignedTo,
-        status,
-      };
-
-      setDocuments((prevDocuments) => [...prevDocuments, newDocument]);
+      setExams((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          title,
+          subject,
+          duration,
+        },
+      ]);
     }
 
     resetForm();
   }
 
-  function handleEdit(document: DocumentItem) {
-    setEditingId(document.id);
-    setTitle(document.title);
-    setAssignedTo(document.assignedTo);
-    setStatus(document.status);
+  function handleEditExam(exam: Exam) {
+    setEditingId(exam.id);
+    setTitle(exam.title);
+    setSubject(exam.subject);
+    setDuration(exam.duration);
   }
 
-  function handleDelete(id: number) {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this document?"
-    );
+  function handleDeleteExam(id: number) {
+    setExams((prev) => prev.filter((exam) => exam.id !== id));
+  }
 
-    if (!confirmDelete) return;
+  async function handleLogout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
 
-    setDocuments((prevDocuments) =>
-      prevDocuments.filter((document) => document.id !== id)
+    router.push("/login");
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        Loading dashboard...
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-10">
+    <main className="min-h-screen bg-slate-950 px-6 py-8 text-white">
       <section className="mx-auto max-w-6xl">
-        <div className="mb-8 rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-3xl font-bold text-slate-900">
-            SecureCloud Dashboard
-          </h1>
+        <div className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 md:flex-row md:items-center">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-blue-400">
+              SecureExam Portal
+            </p>
 
-          <p className="mt-2 text-slate-600">
-            Manage secure documents with role-based access.
-          </p>
+            <h1 className="mt-2 text-3xl font-bold">
+              {user?.role === "admin" ? "Admin Dashboard" : "User Dashboard"}
+            </h1>
 
-          <div className="mt-5 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setRole("admin")}
-              className={`rounded-lg px-4 py-2 font-medium ${
-                role === "admin"
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              Admin View
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setRole("user")}
-              className={`rounded-lg px-4 py-2 font-medium ${
-                role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              User View
-            </button>
+            <p className="mt-2 text-slate-400">
+              Logged in as {user?.name} — {user?.email}
+            </p>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-xl bg-red-600 px-5 py-3 font-semibold hover:bg-red-700"
+          >
+            Logout
+          </button>
         </div>
 
-        {role === "admin" && (
-          <div className="mb-8 rounded-2xl bg-white p-6 shadow">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              {editingId ? "Edit Document" : "Add New Document"}
+        {user?.role === "admin" && (
+          <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="mb-5 text-2xl font-bold">
+              {editingId ? "Edit Exam" : "Create Exam"}
             </h2>
 
-            <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-4">
+            <form onSubmit={handleSaveExam} className="grid gap-4 md:grid-cols-4">
               <input
-                type="text"
-                placeholder="Document title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                placeholder="Exam title"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-blue-500"
               />
 
               <input
-                type="email"
-                placeholder="Assign to user email"
-                value={assignedTo}
-                onChange={(event) => setAssignedTo(event.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                value={subject}
+                onChange={(event) => setSubject(event.target.value)}
+                placeholder="Subject"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-blue-500"
               />
 
-              <select
-                value={status}
-                onChange={(event) =>
-                  setStatus(event.target.value as DocumentStatus)
-                }
-                className="rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+              <input
+                value={duration}
+                onChange={(event) => setDuration(event.target.value)}
+                placeholder="Duration"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-blue-500"
+              />
+
+              <button
+                type="submit"
+                className="rounded-xl bg-blue-600 px-5 py-3 font-semibold hover:bg-blue-700"
               >
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
-                >
-                  {editingId ? "Save" : "Add"}
-                </button>
-
-                {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="rounded-lg bg-slate-200 px-5 py-3 font-medium text-slate-700 hover:bg-slate-300"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
+                {editingId ? "Save Changes" : "Add Exam"}
+              </button>
             </form>
           </div>
         )}
 
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-semibold text-slate-900">
-            {role === "admin" ? "All Documents" : "Assigned Documents"}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <h2 className="mb-5 text-2xl font-bold">
+            {user?.role === "admin" ? "Manage Exams" : "Available Exams"}
           </h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b bg-slate-50 text-slate-700">
-                  <th className="px-4 py-3">Title</th>
-                  <th className="px-4 py-3">Owner</th>
-                  <th className="px-4 py-3">Assigned To</th>
-                  <th className="px-4 py-3">Status</th>
-                  {role === "admin" && <th className="px-4 py-3">Actions</th>}
-                </tr>
-              </thead>
+          <div className="grid gap-5 md:grid-cols-2">
+            {exams.map((exam) => (
+              <div
+                key={exam.id}
+                className="rounded-2xl border border-slate-800 bg-slate-950 p-5"
+              >
+                <h3 className="text-xl font-bold">{exam.title}</h3>
+                <p className="mt-2 text-slate-400">Subject: {exam.subject}</p>
+                <p className="mt-1 text-slate-400">Duration: {exam.duration}</p>
 
-              <tbody>
-                {visibleDocuments.map((document) => (
-                  <tr key={document.id} className="border-b">
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {document.title}
-                    </td>
-
-                    <td className="px-4 py-3 text-slate-600">
-                      {document.owner}
-                    </td>
-
-                    <td className="px-4 py-3 text-slate-600">
-                      {document.assignedTo}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-700">
-                        {document.status}
-                      </span>
-                    </td>
-
-                    {role === "admin" && (
-                      <td className="space-x-2 px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(document)}
-                          className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(document.id)}
-                          className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-
-                {visibleDocuments.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={role === "admin" ? 5 : 4}
-                      className="px-4 py-8 text-center text-slate-500"
+                {user?.role === "admin" ? (
+                  <div className="mt-5 flex gap-3">
+                    <button
+                      onClick={() => handleEditExam(exam)}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-700"
                     >
-                      No documents found.
-                    </td>
-                  </tr>
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteExam(exam.id)}
+                      className="rounded-lg bg-red-600 px-4 py-2 font-semibold hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <button className="mt-5 rounded-lg bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-700">
+                    Start Exam
+                  </button>
                 )}
-              </tbody>
-            </table>
+              </div>
+            ))}
           </div>
         </div>
       </section>

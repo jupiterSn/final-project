@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { createToken } from "@/lib/auth";
@@ -7,15 +8,17 @@ export async function POST(request: Request) {
   try {
     const { email, otp } = await request.json();
 
-    const user = users.find(
-      (currentUser) => currentUser.email === email
-    );
+    if (!email || !otp) {
+      return NextResponse.json(
+        { message: "Email and OTP are required" },
+        { status: 400 }
+      );
+    }
+
+    const user = users.find((currentUser) => currentUser.email === email);
 
     if (!user) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
     if (!user.otp || user.otp !== otp) {
@@ -25,14 +28,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      user.otpExpiresAt &&
-      Date.now() > user.otpExpiresAt
-    ) {
-      return NextResponse.json(
-        { message: "OTP expired" },
-        { status: 401 }
-      );
+    if (user.otpExpiresAt && Date.now() > user.otpExpiresAt) {
+      return NextResponse.json({ message: "OTP expired" }, { status: 401 });
     }
 
     user.isVerified = true;
@@ -45,9 +42,18 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
+    const cookieStore = await cookies();
+
+    cookieStore.set("secureexam_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24,
+    });
+
     return NextResponse.json({
       message: "Verification successful",
-      token,
       user: {
         id: user.id,
         name: user.name,
@@ -55,7 +61,9 @@ export async function POST(request: Request) {
         role: user.role,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("OTP error:", error);
+
     return NextResponse.json(
       { message: "OTP verification failed" },
       { status: 500 }

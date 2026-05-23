@@ -1,14 +1,12 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { comparePassword } from "@/lib/auth";
-import { users } from "@/lib/db";
-import type { LoginRequest } from "@/types/auth";
+import { comparePassword, createToken } from "@/lib/auth";
+import { users } from "@/lib/users";
 
 export async function POST(request: Request) {
   try {
-    const body: LoginRequest = await request.json();
-
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -17,41 +15,58 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser = users.find(
-      (user) => user.email === email
-    );
+    const user = users.find((currentUser) => currentUser.email === email);
 
-    if (!existingUser) {
+    if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const passwordMatch = await comparePassword(
-      password,
-      existingUser.password
-    );
+    const passwordMatches = user.password.startsWith("$2")
+      ? await comparePassword(password, user.password)
+      : password === user.password;
 
-    if (!passwordMatch) {
+    if (!passwordMatches) {
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    return NextResponse.json(
-      {
-        message: "Login successful",
-        user: {
-          id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role,
-        },
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { message: "Please verify your email first" },
+        { status: 403 }
+      );
+    }
+
+    const token = createToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const cookieStore = await cookies();
+
+    cookieStore.set("secureexam_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24,
+    });
+
+    return NextResponse.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
       },
-      { status: 200 }
-    );
+    });
   } catch (error) {
     console.error("Login error:", error);
 

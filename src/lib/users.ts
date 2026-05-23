@@ -16,7 +16,7 @@ export const users: StoredUser[] = [
     id: "1",
     name: "Admin",
     email: "admin@secureexam.com",
-    password: "$2b$10$example",
+    password: "admin123",
     role: "admin",
     isVerified: true,
   },
