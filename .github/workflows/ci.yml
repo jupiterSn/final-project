@@ -1,19 +1,22 @@
-name: CI
+name: SecureExam CI
 
 on:
   push:
     branches:
-      - main
       - development
+      - main
   pull_request:
     branches:
       - main
-      - development
 
 jobs:
   build:
-    name: Lint and build
     runs-on: ubuntu-latest
+
+    env:
+      JWT_SECRET: test_secret
+      EMAIL_USER: test@example.com
+      EMAIL_PASS: test_password
 
     steps:
       - name: Checkout repository
@@ -23,16 +26,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run lint
         run: npm run lint
 
       - name: Build project
         run: npm run build
-        env:
-          JWT_SECRET: ci_jwt_secret
-          JWT_EXPIRES_IN: 1h
